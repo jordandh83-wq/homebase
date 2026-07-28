@@ -456,7 +456,7 @@
     events: [],
     googleSync: { calendarId: "", assignmentsCalendarId: "", apiKey: "", lastSync: null },
     googleEvents: [],
-    backend: { apiBase: "", apiToken: "" }
+    backend: { apiBase: "https://homebase-api.jordandh83.workers.dev", apiToken: "T90yzN6QIDGvqOKVGVlnkwvTdQDzMrTpDWEvNljFHpj8Uw-409" }
   };
 
   let state = load();
@@ -473,7 +473,10 @@
         events: parsed.events || [],
         googleSync: { ...DEFAULTS.googleSync, ...(parsed.googleSync || {}) },
         googleEvents: parsed.googleEvents || [],
-        backend: parsed.backend || structuredClone(DEFAULTS.backend)
+        backend: {
+          apiBase: (parsed.backend && parsed.backend.apiBase) || DEFAULTS.backend.apiBase,
+          apiToken: (parsed.backend && parsed.backend.apiToken) || DEFAULTS.backend.apiToken
+        }
       };
     }catch(e){
       console.error("Failed to load data", e);
