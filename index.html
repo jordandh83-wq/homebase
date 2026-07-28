@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Homebase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b1220;
+    --surface: #111a2e;
+    --surface-2: #16213a;
+    --border: #1f2b45;
+    --text: #e8edf7;
+    --muted: #8b96ad;
+    --teal: #2dd4bf;
+    --danger: #f87171;
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(1200px 600px at 15% -10%, #14213d 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{ font-family:'Space Grotesk', sans-serif; letter-spacing:-0.01em; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  a{color:inherit;}
+  button{ font-family:inherit; cursor:pointer; }
+  ::selection{ background: rgba(45,212,191,0.3); }
+
+  /* ---------- Layout shell ---------- */
+  .wrap{ max-width: 1100px; margin: 0 auto; padding: 24px 20px 80px; }
+  header.top{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding: 8px 0 20px; border-bottom: 1px solid var(--border); margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .brand{ display:flex; align-items:baseline; gap:10px; }
+  .brand .mark{
+    width:34px; height:34px; border-radius:10px;
+    background: linear-gradient(135deg, var(--teal), #0891b2);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; color:#04211d; font-family:'Space Grotesk',sans-serif;
+    flex-shrink:0;
+  }
+  .brand h1{ font-size: 1.35rem; margin:0; }
+  .brand .sub{ color:var(--muted); font-size:0.85rem; }
+  .today-chip{
+    font-family:'JetBrains Mono',monospace; font-size:0.8rem; color:var(--muted);
+    border:1px solid var(--border); padding:6px 12px; border-radius:999px;
+    background: var(--surface);
+  }
+
+  nav.tabs{ display:flex; gap:6px; background:var(--surface); padding:5px; border-radius:12px; border:1px solid var(--border); width:fit-content; margin-bottom:26px; }
+  nav.tabs button{
+    background:transparent; border:none; color:var(--muted); padding:9px 18px; border-radius:9px;
+    font-weight:600; font-size:0.92rem; transition: all .15s ease;
+  }
+  nav.tabs button.active{ background: var(--surface-2); color:var(--text); box-shadow: inset 0 0 0 1px var(--border); }
+  nav.tabs button:hover:not(.active){ color: var(--text); }
+
+  .view{ display:none; }
+  .view.active{ display:block; animation: fadein .25s ease; }
+  @keyframes fadein{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  .panel{ background:var(--surface); border:1px solid var(--border); border-radius: var(--radius); padding:20px; margin-bottom:20px; }
+  .panel h2{ font-size:1.05rem; margin:0 0 14px; display:flex; align-items:center; gap:8px; }
+  .panel h2 .count{ font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--muted); font-weight:500; }
+
+  /* ---------- Stat strip ---------- */
+  .stats{ display:grid; grid-template-columns: repeat(3,1fr); gap:12px; margin-bottom:20px; }
+  .stat{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; }
+  .stat .num{ font-family:'JetBrains Mono',monospace; font-size:1.7rem; font-weight:600; }
+  .stat .label{ color:var(--muted); font-size:0.8rem; margin-top:2px; }
+  .stat.overdue .num{ color: var(--danger); }
+  .stat.soon .num{ color: #fbbf24; }
+
+  /* ---------- Flightpath (ring cards) ---------- */
+  .fp-list{ display:flex; flex-direction:column; gap:10px; }
+  .fp-card{
+    display:flex; align-items:center; gap:14px; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:16px; padding:14px 16px;
+  }
+  .fp-card .fp-info{ flex:1; min-width:0; }
+  .fp-card .fp-title{ font-weight:700; font-size:0.95rem; line-height:1.3; }
+  .fp-card .fp-meta{ color:var(--muted); font-size:0.78rem; margin-top:3px; display:flex; align-items:center; gap:5px; }
+  .fp-card .fp-meta .dot-swatch{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .fp-card .fp-days{ font-family:'JetBrains Mono',monospace; font-size:0.85rem; color:var(--muted); margin-top:6px; }
+  .fp-card .fp-days.overdue{ color:var(--danger); font-weight:700; }
+  .fp-card .fp-days.soon{ color:#fbbf24; font-weight:700; }
+  .fp-ring{ width:52px; height:52px; flex-shrink:0; }
+  .fp-ring circle.progress{ transition: stroke-dashoffset .4s ease; }
+  .fp-ring.overdue circle.progress{ animation: pulse-ring 1.8s infinite; }
+  @keyframes pulse-ring{ 0%,100%{ opacity:1; } 50%{ opacity:0.45; } }
+
+
+  /* ---------- Assignment list ---------- */
+  .a-item{
+    display:flex; align-items:center; gap:12px; padding:11px 8px; border-bottom:1px solid var(--border);
+  }
+  .a-item:last-child{ border-bottom:none; }
+  .a-item.done{ opacity:0.4; }
+  .a-item .who{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .a-item .info{ flex:1; min-width:0; }
+  .a-item .title{ font-weight:600; font-size:0.92rem; }
+  .a-item .meta{ color:var(--muted); font-size:0.78rem; margin-top:1px; }
+  .a-item .due{ font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:var(--muted); white-space:nowrap; }
+  .a-item .due.overdue{ color:var(--danger); font-weight:600; }
+  .a-item .due.soon{ color:#fbbf24; font-weight:600; }
+  .icon-btn{ background:none; border:none; color:var(--muted); padding:4px 6px; border-radius:6px; font-size:0.85rem; }
+  .icon-btn:hover{ color:var(--text); background:var(--surface-2); }
+
+  .empty{ color:var(--muted); font-size:0.88rem; padding:18px 6px; text-align:center; }
+
+  /* ---------- Forms ---------- */
+  .form-row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .form-row > *{ flex:1; min-width:120px; }
+  label.field-label{ font-size:0.75rem; color:var(--muted); display:block; margin-bottom:5px; font-weight:600; }
+  input, select, textarea{
+    width:100%; background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    padding:9px 11px; border-radius:9px; font-size:0.88rem; font-family:inherit;
+  }
+  input:focus, select:focus, textarea:focus{ outline:2px solid var(--teal); outline-offset:1px; }
+  .btn{
+    background: var(--teal); color:#04211d; border:none; padding:10px 18px; border-radius:9px;
+    font-weight:700; font-size:0.88rem;
+  }
+  .btn:hover{ filter:brightness(1.08); }
+  .btn.ghost{ background:transparent; color:var(--text); border:1px solid var(--border); }
+  .btn.ghost:hover{ background:var(--surface-2); }
+  .btn.small{ padding:7px 12px; font-size:0.8rem; }
+
+  .filter-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .chip{
+    border:1px solid var(--border); background:var(--surface-2); color:var(--muted);
+    padding:6px 13px; border-radius:999px; font-size:0.8rem; font-weight:600; display:flex; align-items:center; gap:6px;
+  }
+  .chip.active{ color:var(--text); border-color: currentColor; }
+  .chip .dot{ width:7px; height:7px; border-radius:50%; }
+
+  /* ---------- Calendar ---------- */
+  .cal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .cal-header .month-label{ font-size:1.1rem; font-weight:600; }
+  .cal-nav{ display:flex; gap:6px; }
+  .cal-grid{ display:grid; grid-template-columns: repeat(7,1fr); gap:6px; }
+  .cal-dow{ text-align:center; font-size:0.7rem; color:var(--muted); font-weight:700; padding-bottom:4px; }
+  .cal-cell{
+    min-height:78px; background:var(--surface-2); border:1px solid var(--border); border-radius:10px;
+    padding:6px; font-size:0.75rem; cursor:pointer; display:flex; flex-direction:column; gap:3px;
+    transition: border-color .15s ease;
+  }
+  .cal-cell:hover{ border-color: var(--teal); }
+  .cal-cell.muted{ opacity:0.3; }
+  .cal-cell.today{ border-color: var(--teal); box-shadow: inset 0 0 0 1px var(--teal); }
+  .cal-cell.selected{ background: rgba(45,212,191,0.1); }
+  .cal-cell .d-num{ font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--muted); }
+  .cal-cell.today .d-num{ color:var(--teal); }
+  .cal-pill{ font-size:0.62rem; padding:2px 6px; border-radius:5px; font-weight:700; color:#04211d; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cal-pill.more{ background:var(--border); color:var(--muted); }
+  .cal-pill.google-pill{ background:rgba(56,189,248,0.15); border:1px dashed #38bdf8; color:#7dd3fc; }
+
+  /* ---------- Google sync ---------- */
+  .sync-status{ font-size:0.8rem; color:var(--muted); margin-top:10px; }
+  .sync-status.ok{ color: var(--teal); }
+  .sync-status.err{ color: var(--danger); }
+  .sync-help{ font-size:0.78rem; color:var(--muted); margin-top:10px; line-height:1.5; }
+  .sync-help a{ color:var(--teal); }
+
+  .agenda{ margin-top:18px; }
+  .agenda-item{ display:flex; align-items:center; gap:10px; padding:9px 6px; border-bottom:1px solid var(--border); }
+  .agenda-item:last-child{ border-bottom:none; }
+  .agenda-item .who{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+
+  /* ---------- People / settings ---------- */
+  .people-list{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .person-chip{ display:flex; align-items:center; gap:8px; background:var(--surface-2); border:1px solid var(--border); border-radius:999px; padding:6px 10px 6px 6px; font-size:0.82rem; }
+  .person-chip .sw{ width:16px; height:16px; border-radius:50%; }
+  .person-chip button{ background:none; border:none; color:var(--muted); font-size:0.8rem; }
+  .person-chip button:hover{ color:var(--danger); }
+
+  footer{ text-align:center; color:var(--muted); font-size:0.78rem; margin-top:40px; display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+  footer button{ background:none; border:none; color:var(--muted); text-decoration:underline; font-size:0.78rem; }
+  footer button:hover{ color:var(--text); }
+  #importFile{ display:none; }
+
+  @media (max-width: 640px){
+    .stats{ grid-template-columns:1fr 1fr 1fr; }
+    .stat .num{ font-size:1.3rem; }
+    .cal-cell{ min-height:56px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="mark">H</div>
+      <div>
+        <h1>Homebase</h1>
+        <div class="sub">Assignments &amp; who's where</div>
+      </div>
+    </div>
+    <div class="today-chip" id="todayChip"></div>
+  </header>
+
+  <nav class="tabs">
+    <button class="active" data-view="assignments">Assignments</button>
+    <button data-view="calendar">Calendar</button>
+    <button data-view="people">People</button>
+  </nav>
+
+  <!-- ===================== ASSIGNMENTS VIEW ===================== -->
+  <section class="view active" id="view-assignments">
+
+    <div class="stats">
+      <div class="stat overdue">
+        <div class="num" id="statOverdue">0</div>
+        <div class="label">Overdue</div>
+      </div>
+      <div class="stat soon">
+        <div class="num" id="statSoon">0</div>
+        <div class="label">Due in 3 days</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="statTotal">0</div>
+        <div class="label">Open total</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Flightpath <span class="count" id="fpHeading">colour-coded by subject</span></h2>
+      <div class="fp-list" id="fpList"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Add assignment</h2>
+      <form id="assignmentForm">
+        <div class="form-row">
+          <div>
+            <label class="field-label">Who</label>
+            <select id="af-person" required></select>
+          </div>
+          <div>
+            <label class="field-label">Subject</label>
+            <select id="af-subject" required></select>
+          </div>
+          <div>
+            <label class="field-label">Due date</label>
+            <input id="af-due" type="date" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div style="flex:3;">
+            <label class="field-label">Details</label>
+            <input id="af-title" type="text" placeholder="e.g. Blue Print (Checkpoint)" required>
+          </div>
+          <div style="flex:1; align-self:flex-end;">
+            <button type="submit" class="btn" style="width:100%;">Add</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>All assignments <span class="count" id="listCount"></span></h2>
+      <div class="filter-row" id="assignmentFilters"></div>
+      <div id="assignmentList"></div>
+    </div>
+  </section>
+
+  <!-- ===================== CALENDAR VIEW ===================== -->
+  <section class="view" id="view-calendar">
+    <div class="panel">
+      <div class="cal-header">
+        <div class="month-label" id="calMonthLabel"></div>
+        <div class="cal-nav">
+          <button class="btn ghost small" id="calPrev">&larr;</button>
+          <button class="btn ghost small" id="calToday">Today</button>
+          <button class="btn ghost small" id="calNext">&rarr;</button>
+        </div>
+      </div>
+      <div class="cal-grid" id="calDow"></div>
+      <div class="cal-grid" id="calGrid" style="margin-top:6px;"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Google Calendar sync <span class="count">read-only</span></h2>
+      <form id="syncForm">
+        <div class="form-row">
+          <div style="flex:2;">
+            <label class="field-label">Family calendar ID (optional)</label>
+            <input id="sf-calid" type="text" placeholder="e.g. family_abc123@group.calendar.google.com">
+          </div>
+          <div style="flex:2;">
+            <label class="field-label">Assignments calendar ID (optional)</label>
+            <input id="sf-assign-calid" type="text" placeholder="e.g. school_abc123@group.calendar.google.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div style="flex:2;">
+            <label class="field-label">API key</label>
+            <input id="sf-key" type="text" placeholder="Google Cloud API key">
+          </div>
+          <div style="align-self:flex-end;">
+            <button type="submit" class="btn" style="width:100%;">Sync now</button>
+          </div>
+        </div>
+      </form>
+      <div class="sync-status" id="syncStatus">Not connected yet.</div>
+      <div class="sync-help">
+        The family calendar ID shows its events on the Calendar grid with a dashed outline. The assignments calendar ID turns events titled <strong>"Name - Subject"</strong> (e.g. "Abi - Maths") into Flightpath cards — the event's date becomes the due date, and the description (if any) becomes the detail line. Neither ever writes back to Google. One-time setup: in each calendar's settings, turn on <em>"Make available to public"</em> under Access permissions and copy the Calendar ID from Integrate calendar. Then in Google Cloud Console, enable the Calendar API and create an API key restricted to it. All values are stored only in this browser.
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Add to calendar</h2>
+      <form id="eventForm">
+        <div class="form-row">
+          <div>
+            <label class="field-label">Who</label>
+            <select id="ef-person" required></select>
+          </div>
+          <div>
+            <label class="field-label">What</label>
+            <input id="ef-title" type="text" placeholder="e.g. Gold Coast, netball, pickup" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div>
+            <label class="field-label">Start date</label>
+            <input id="ef-start" type="date" required>
+          </div>
+          <div>
+            <label class="field-label">End date (optional, for multi-day)</label>
+            <input id="ef-end" type="date">
+          </div>
+          <div style="align-self:flex-end;">
+            <button type="submit" class="btn" style="width:100%;">Add</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel agenda">
+      <h2 id="agendaTitle">Agenda</h2>
+      <div id="agendaList"></div>
+    </div>
+  </section>
+
+  <!-- ===================== PEOPLE VIEW ===================== -->
+  <section class="view" id="view-people">
+    <div class="panel">
+      <h2>Family members</h2>
+      <div class="people-list" id="peopleList"></div>
+      <form id="personForm">
+        <div class="form-row">
+          <div>
+            <label class="field-label">Name</label>
+            <input id="pf-name" type="text" placeholder="e.g. Liv" required>
+          </div>
+          <div>
+            <label class="field-label">Colour</label>
+            <input id="pf-color" type="color" value="#2dd4bf">
+          </div>
+          <div style="align-self:flex-end;">
+            <button type="submit" class="btn" style="width:100%;">Add person</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Subjects <span class="count">used to colour the flightpath</span></h2>
+      <div class="people-list" id="subjectsList"></div>
+      <form id="subjectForm">
+        <div class="form-row">
+          <div>
+            <label class="field-label">Name</label>
+            <input id="sf-name" type="text" placeholder="e.g. Art" required>
+          </div>
+          <div>
+            <label class="field-label">Colour</label>
+            <input id="sf-color" type="color" value="#2dd4bf">
+          </div>
+          <div style="align-self:flex-end;">
+            <button type="submit" class="btn" style="width:100%;">Add subject</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Shared backend <span class="count">so a chat assistant or another device can add things</span></h2>
+      <form id="backendForm">
+        <div class="form-row">
+          <div style="flex:2;">
+            <label class="field-label">API URL</label>
+            <input id="bf-base" type="text" placeholder="https://homebase-api.yourname.workers.dev">
+          </div>
+          <div style="flex:2;">
+            <label class="field-label">Access token</label>
+            <input id="bf-token" type="text" placeholder="the token you set on the Worker">
+          </div>
+          <div style="align-self:flex-end;">
+            <button type="submit" class="btn" style="width:100%;">Connect</button>
+          </div>
+        </div>
+      </form>
+      <div class="sync-status" id="backendStatus">Not connected — data is only on this device.</div>
+      <div class="sync-help">
+        Once connected, every add/edit/delete here goes straight to the shared backend instead of this browser only — so all devices see the same data, and anything added another way (like telling an assistant in chat) shows up here too.
+      </div>
+    </div>
+  </section>
+
+
+  <footer>
+    <span>Data is stored on this device only.</span>
+    <button id="exportBtn">Export backup</button>
+    <button id="importBtn">Import backup</button>
+    <input type="file" id="importFile" accept="application/json">
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const STORAGE_KEY = "homebase_data_v1";
+
+  const DEFAULTS = {
+    people: [
+      { id: "jordan", name: "Jordan", color: "#34d399" },
+      { id: "julia",  name: "Julia",  color: "#a78bfa" },
+      { id: "abi",    name: "Abi",    color: "#f59e0b" },
+      { id: "liv",    name: "Liv",    color: "#fb7185" },
+      { id: "flynn",  name: "Flynn",  color: "#60a5fa" },
+      { id: "lewis",  name: "Lewis",  color: "#f472b6" }
+    ],
+    subjects: [
+      { id: "maths",     name: "Maths",       color: "#3b82f6" },
+      { id: "science",   name: "Science",     color: "#22c55e" },
+      { id: "english",   name: "English",     color: "#a78bfa" },
+      { id: "hpe",       name: "Health & PE", color: "#f97316" },
+      { id: "humanities",name: "Humanities",  color: "#eab308" },
+      { id: "other",     name: "Other",       color: "#64748b" }
+    ],
+    assignments: [],
+    events: [],
+    googleSync: { calendarId: "", assignmentsCalendarId: "", apiKey: "", lastSync: null },
+    googleEvents: [],
+    backend: { apiBase: "", apiToken: "" }
+  };
+
+  let state = load();
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return structuredClone(DEFAULTS);
+      const parsed = JSON.parse(raw);
+      return {
+        people: parsed.people && parsed.people.length ? parsed.people : structuredClone(DEFAULTS.people),
+        subjects: parsed.subjects && parsed.subjects.length ? parsed.subjects : structuredClone(DEFAULTS.subjects),
+        assignments: parsed.assignments || [],
+        events: parsed.events || [],
+        googleSync: { ...DEFAULTS.googleSync, ...(parsed.googleSync || {}) },
+        googleEvents: parsed.googleEvents || [],
+        backend: parsed.backend || structuredClone(DEFAULTS.backend)
+      };
+    }catch(e){
+      console.error("Failed to load data", e);
+      return structuredClone(DEFAULTS);
+    }
+  }
+
+  function save(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }catch(e){
+      console.error("Failed to save data", e);
+      alert("Couldn't save — your browser storage may be full or blocked.");
+    }
+  }
+
+  function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+  function personById(id){ return state.people.find(p => p.id === id); }
+  function subjectById(id){ return state.subjects.find(s => s.id === id); }
+  function fmtDate(d){ return d.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' }); }
+  function toDateOnly(str){ const [y,m,d] = str.split('-').map(Number); return new Date(y, m-1, d); }
+  function isoDate(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+  function todayDate(){ const t = new Date(); t.setHours(0,0,0,0); return t; }
+  function daysBetween(a,b){ return Math.round((b - a) / 86400000); }
+
+  // ---------------- Shared backend (so a chat assistant or another device can add things) ----------------
+  function backendEnabled(){ return !!(state.backend.apiBase && state.backend.apiToken); }
+
+  async function apiCall(path, opts={}){
+    const base = state.backend.apiBase.replace(/\/$/, '');
+    const res = await fetch(base + path, {
+      ...opts,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + state.backend.apiToken,
+        ...(opts.headers || {})
+      }
+    });
+    if(!res.ok){
+      const text = await res.text().catch(() => '');
+      throw new Error(`${res.status} ${text}`.trim());
+    }
+    return res.status === 204 ? null : res.json();
+  }
+
+  function setBackendStatus(msg, cls){
+    const el = document.getElementById('backendStatus');
+    if(!el) return;
+    el.textContent = msg;
+    el.className = 'sync-status' + (cls ? ' ' + cls : '');
+  }
+
+  async function refreshFromBackend(){
+    if(!backendEnabled()) return;
+    try{
+      setBackendStatus('Loading from shared backend…');
+      const data = await apiCall('/api/state');
+      state.people = (data.people && data.people.length) ? data.people : state.people;
+      state.subjects = (data.subjects && data.subjects.length) ? data.subjects : state.subjects;
+      state.assignments = data.assignments || [];
+      state.events = data.events || [];
+      renderPeople();
+      renderSubjects();
+      renderAll();
+      renderCalendar();
+      setBackendStatus('Connected · last loaded ' + new Date().toLocaleTimeString(), 'ok');
+    }catch(err){
+      console.error(err);
+      setBackendStatus('Could not reach backend: ' + err.message, 'err');
+    }
+  }
+
+  // ---------------- Tabs ----------------
+  const tabButtons = document.querySelectorAll('nav.tabs button');
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + btn.dataset.view).classList.add('active');
+      if(btn.dataset.view === 'calendar') renderCalendar();
+    });
+  });
+
+  document.getElementById('todayChip').textContent = fmtDate(new Date());
+
+  // ---------------- People ----------------
+  function fillPersonSelects(){
+    document.querySelectorAll('select#af-person, select#ef-person').forEach(sel => {
+      const current = sel.value;
+      sel.innerHTML = state.people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+      if(current) sel.value = current;
+    });
+  }
+
+  function fillSubjectSelects(){
+    document.querySelectorAll('select#af-subject').forEach(sel => {
+      const current = sel.value;
+      sel.innerHTML = state.subjects.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+      if(current) sel.value = current;
+    });
+  }
+
+  function renderPeople(){
+    const list = document.getElementById('peopleList');
+    list.innerHTML = state.people.map(p => `
+      <div class="person-chip">
+        <span class="sw" style="background:${p.color}"></span>
+        ${escapeHtml(p.name)}
+        <button data-id="${p.id}" title="Remove">&times;</button>
+      </div>
+    `).join('');
+    list.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const inUse = state.assignments.some(a => a.personId === id) || state.events.some(e => e.personId === id);
+        if(inUse && !confirm('This person has assignments or calendar entries. Remove them anyway? Their entries will stay but show as "Unknown".')) return;
+        if(backendEnabled()){
+          try{
+            await apiCall('/api/people/' + encodeURIComponent(id), { method:'DELETE' });
+            await refreshFromBackend();
+          }catch(err){ alert('Could not delete on backend: ' + err.message); return; }
+        }else{
+          state.people = state.people.filter(p => p.id !== id);
+          save(); renderPeople(); fillPersonSelects(); renderAssignmentFilters(); renderAll();
+        }
+      });
+    });
+    fillPersonSelects();
+    renderAssignmentFilters();
+  }
+
+  document.getElementById('personForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const name = document.getElementById('pf-name').value.trim();
+    const color = document.getElementById('pf-color').value;
+    if(!name) return;
+    if(backendEnabled()){
+      try{
+        await apiCall('/api/people', { method:'POST', body: JSON.stringify({ name, color }) });
+        await refreshFromBackend();
+      }catch(err){ alert('Could not save to backend: ' + err.message); return; }
+    }else{
+      state.people.push({ id: uid(), name, color });
+      save();
+      renderPeople();
+    }
+    document.getElementById('personForm').reset();
+    document.getElementById('pf-color').value = '#2dd4bf';
+  });
+
+  // ---------------- Subjects ----------------
+  function renderSubjects(){
+    const list = document.getElementById('subjectsList');
+    list.innerHTML = state.subjects.map(s => `
+      <div class="person-chip">
+        <span class="sw" style="background:${s.color}"></span>
+        ${escapeHtml(s.name)}
+        <button data-id="${s.id}" title="Remove">&times;</button>
+      </div>
+    `).join('');
+    list.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const inUse = state.assignments.some(a => a.subjectId === id);
+        if(inUse && !confirm('Assignments use this subject. Remove it anyway? They will show as "Other".')) return;
+        if(backendEnabled()){
+          try{
+            await apiCall('/api/subjects/' + encodeURIComponent(id), { method:'DELETE' });
+            await refreshFromBackend();
+          }catch(err){ alert('Could not delete on backend: ' + err.message); return; }
+        }else{
+          state.subjects = state.subjects.filter(s => s.id !== id);
+          save(); renderSubjects(); renderAll();
+        }
+      });
+    });
+    fillSubjectSelects();
+  }
+
+  document.getElementById('subjectForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const name = document.getElementById('sf-name').value.trim();
+    const color = document.getElementById('sf-color').value;
+    if(!name) return;
+    if(backendEnabled()){
+      try{
+        await apiCall('/api/subjects', { method:'POST', body: JSON.stringify({ name, color }) });
+        await refreshFromBackend();
+      }catch(err){ alert('Could not save to backend: ' + err.message); return; }
+    }else{
+      state.subjects.push({ id: uid(), name, color });
+      save();
+      renderSubjects();
+    }
+    document.getElementById('subjectForm').reset();
+    document.getElementById('sf-color').value = '#2dd4bf';
+  });
+
+  document.getElementById('bf-base').value = state.backend.apiBase;
+  document.getElementById('bf-token').value = state.backend.apiToken;
+  document.getElementById('backendForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    state.backend.apiBase = document.getElementById('bf-base').value.trim();
+    state.backend.apiToken = document.getElementById('bf-token').value.trim();
+    save();
+    await refreshFromBackend();
+  });
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+
+  // ---------------- Assignments ----------------
+  let activeFilter = null;
+
+  document.getElementById('assignmentForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const personId = document.getElementById('af-person').value;
+    const subjectId = document.getElementById('af-subject').value;
+    const title = document.getElementById('af-title').value.trim();
+    const due = document.getElementById('af-due').value;
+    if(!personId || !subjectId || !title || !due) return;
+    if(backendEnabled()){
+      try{
+        await apiCall('/api/assignments', { method:'POST', body: JSON.stringify({ personId, subjectId, title, due }) });
+        await refreshFromBackend();
+      }catch(err){ alert('Could not save to backend: ' + err.message); return; }
+    }else{
+      state.assignments.push({ id: uid(), personId, subjectId, title, due, notes:'', done: false });
+      save();
+      renderAll();
+    }
+    document.getElementById('assignmentForm').reset();
+  });
+
+  function renderAssignmentFilters(){
+    const wrap = document.getElementById('assignmentFilters');
+    let html = `<div class="chip ${activeFilter===null?'active':''}" data-id="">All</div>`;
+    html += state.people.map(p => `
+      <div class="chip ${activeFilter===p.id?'active':''}" data-id="${p.id}" style="${activeFilter===p.id ? 'color:'+p.color : ''}">
+        <span class="dot" style="background:${p.color}"></span>${escapeHtml(p.name)}
+      </div>`).join('');
+    wrap.innerHTML = html;
+    wrap.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        activeFilter = chip.dataset.id || null;
+        renderAssignmentFilters();
+        renderAssignmentList();
+        renderFlightpath();
+      });
+    });
+  }
+
+  function renderStats(){
+    const today = todayDate();
+    const open = state.assignments.filter(a => !a.done);
+    const overdue = open.filter(a => daysBetween(today, toDateOnly(a.due)) < 0);
+    const soon = open.filter(a => { const d = daysBetween(today, toDateOnly(a.due)); return d >= 0 && d <= 3; });
+    document.getElementById('statOverdue').textContent = overdue.length;
+    document.getElementById('statSoon').textContent = soon.length;
+    document.getElementById('statTotal').textContent = open.length;
+  }
+
+  function ringSvg(color, daysUntil, overdue){
+    const r = 22, c = 2 * Math.PI * r;
+    const horizon = 30; // days — ring fills up as the due date approaches
+    const frac = overdue ? 1 : Math.max(0, Math.min(1, 1 - (daysUntil / horizon)));
+    const offset = c * (1 - frac);
+    return `
+      <svg class="fp-ring ${overdue?'overdue':''}" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="${r}" fill="none" stroke="var(--border)" stroke-width="5"/>
+        <circle class="progress" cx="26" cy="26" r="${r}" fill="none" stroke="${color}" stroke-width="5"
+          stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${offset}"
+          transform="rotate(-90 26 26)"/>
+      </svg>`;
+  }
+
+  function renderFlightpath(){
+    const list = document.getElementById('fpList');
+    const heading = document.getElementById('fpHeading');
+    const today = todayDate();
+    let open = state.assignments.filter(a => !a.done);
+    if(activeFilter) open = open.filter(a => a.personId === activeFilter);
+    open = [...open].sort((a,b) => toDateOnly(a.due) - toDateOnly(b.due));
+
+    const filterPerson = activeFilter ? personById(activeFilter) : null;
+    heading.textContent = filterPerson ? `${filterPerson.name}'s assignments` : 'colour-coded by subject';
+
+    if(open.length === 0){
+      list.innerHTML = '<div class="empty">Nothing upcoming — add an assignment below.</div>';
+      return;
+    }
+
+    list.innerHTML = open.map(a => {
+      const s = subjectById(a.subjectId);
+      const p = personById(a.personId);
+      const color = s ? s.color : '#64748b';
+      const d = daysBetween(today, toDateOnly(a.due));
+      const overdue = d < 0;
+      let daysLabel, dueClass = '';
+      if(overdue){ daysLabel = `${Math.abs(d)} days overdue`; dueClass = 'overdue'; }
+      else if(d === 0){ daysLabel = 'Due today'; dueClass = 'soon'; }
+      else { daysLabel = `${d} day${d===1?'':'s'}`; if(d <= 3) dueClass = 'soon'; }
+
+      return `
+        <div class="fp-card">
+          <div class="fp-info">
+            <div class="fp-title">${s ? escapeHtml(s.name) + ' - ' : ''}${escapeHtml(a.title)}</div>
+            <div class="fp-meta"><span class="dot-swatch" style="background:${p?p.color:'#666'}"></span>${p?escapeHtml(p.name):'Unknown'}</div>
+            <div class="fp-days ${dueClass}">${daysLabel}</div>
+          </div>
+          ${ringSvg(color, Math.max(d,0), overdue)}
+        </div>`;
+    }).join('');
+  }
+
+  function renderAssignmentList(){
+    const today = todayDate();
+    let items = [...state.assignments];
+    if(activeFilter) items = items.filter(a => a.personId === activeFilter);
+    items.sort((a,b) => {
+      if(a.done !== b.done) return a.done ? 1 : -1;
+      return toDateOnly(a.due) - toDateOnly(b.due);
+    });
+
+    document.getElementById('listCount').textContent = `(${items.length})`;
+    const list = document.getElementById('assignmentList');
+    if(items.length === 0){
+      list.innerHTML = '<div class="empty">Nothing here yet.</div>';
+      return;
+    }
+
+    list.innerHTML = items.map(a => {
+      const p = personById(a.personId);
+      const s = subjectById(a.subjectId);
+      const d = daysBetween(today, toDateOnly(a.due));
+      let dueClass = '';
+      let dueLabel = fmtDate(toDateOnly(a.due));
+      if(!a.done){
+        if(d < 0){ dueClass = 'overdue'; dueLabel = `${Math.abs(d)}d overdue`; }
+        else if(d === 0){ dueClass = 'soon'; dueLabel = 'Today'; }
+        else if(d <= 3){ dueClass = 'soon'; dueLabel = `in ${d}d`; }
+      }
+      return `
+        <div class="a-item ${a.done?'done':''}">
+          <span class="who" style="background:${s ? s.color : '#666'}"></span>
+          <div class="info">
+            <div class="title">${s ? escapeHtml(s.name) + ' - ' : ''}${escapeHtml(a.title)}</div>
+            <div class="meta">${p ? escapeHtml(p.name) : 'Unknown'}${a.notes ? ' · ' + escapeHtml(a.notes) : ''}</div>
+          </div>
+          <div class="due ${dueClass}">${dueLabel}</div>
+          <button class="icon-btn" data-action="toggle" data-id="${a.id}" title="Mark done">${a.done ? '↺' : '✓'}</button>
+          <button class="icon-btn" data-action="delete" data-id="${a.id}" title="Delete">✕</button>
+        </div>`;
+    }).join('');
+
+    list.querySelectorAll('[data-action="toggle"]').forEach(btn => btn.addEventListener('click', async () => {
+      const a = state.assignments.find(x => x.id === btn.dataset.id);
+      if(!a) return;
+      if(backendEnabled()){
+        try{
+          await apiCall('/api/assignments/' + encodeURIComponent(a.id), { method:'PATCH', body: JSON.stringify({ done: !a.done }) });
+          await refreshFromBackend();
+        }catch(err){ alert('Could not update on backend: ' + err.message); }
+      }else{
+        a.done = !a.done; save(); renderAll();
+      }
+    }));
+    list.querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', async () => {
+      if(!confirm('Delete this assignment?')) return;
+      if(backendEnabled()){
+        try{
+          await apiCall('/api/assignments/' + encodeURIComponent(btn.dataset.id), { method:'DELETE' });
+          await refreshFromBackend();
+        }catch(err){ alert('Could not delete on backend: ' + err.message); }
+      }else{
+        state.assignments = state.assignments.filter(x => x.id !== btn.dataset.id);
+        save(); renderAll();
+      }
+    }));
+  }
+
+  // ---------------- Calendar ----------------
+  let calCursor = todayDate();
+  let selectedDay = todayDate();
+
+  function maybeResync(){
+    if(state.googleSync.apiKey && (state.googleSync.calendarId || state.googleSync.assignmentsCalendarId)) syncGoogleCalendar();
+  }
+
+  document.getElementById('calPrev').addEventListener('click', () => { calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth()-1, 1); renderCalendar(); maybeResync(); });
+  document.getElementById('calNext').addEventListener('click', () => { calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth()+1, 1); renderCalendar(); maybeResync(); });
+  document.getElementById('calToday').addEventListener('click', () => { calCursor = todayDate(); selectedDay = todayDate(); renderCalendar(); maybeResync(); });
+
+  document.getElementById('eventForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const personId = document.getElementById('ef-person').value;
+    const title = document.getElementById('ef-title').value.trim();
+    const start = document.getElementById('ef-start').value;
+    const end = document.getElementById('ef-end').value || start;
+    if(!personId || !title || !start) return;
+    if(backendEnabled()){
+      try{
+        await apiCall('/api/events', { method:'POST', body: JSON.stringify({ personId, title, start, end }) });
+        await refreshFromBackend();
+      }catch(err){ alert('Could not save to backend: ' + err.message); return; }
+    }else{
+      state.events.push({ id: uid(), personId, title, start, end });
+      save();
+      renderCalendar();
+    }
+    document.getElementById('eventForm').reset();
+  });
+
+  function eventsOnDay(dateObj){
+    const iso = isoDate(dateObj);
+    const local = state.events.filter(ev => iso >= ev.start && iso <= ev.end).map(ev => ({...ev, source:'local'}));
+    const google = state.googleEvents.filter(ev => iso >= ev.start && iso <= ev.end).map(ev => ({...ev, source:'google'}));
+    return [...local, ...google];
+  }
+
+  // ---------------- Google Calendar sync (read-only) ----------------
+  document.getElementById('sf-calid').value = state.googleSync.calendarId;
+  document.getElementById('sf-assign-calid').value = state.googleSync.assignmentsCalendarId;
+  document.getElementById('sf-key').value = state.googleSync.apiKey;
+
+  document.getElementById('syncForm').addEventListener('submit', e => {
+    e.preventDefault();
+    state.googleSync.calendarId = document.getElementById('sf-calid').value.trim();
+    state.googleSync.assignmentsCalendarId = document.getElementById('sf-assign-calid').value.trim();
+    state.googleSync.apiKey = document.getElementById('sf-key').value.trim();
+    save();
+    syncGoogleCalendar();
+  });
+
+  function setSyncStatus(msg, cls){
+    const el = document.getElementById('syncStatus');
+    el.textContent = msg;
+    el.className = 'sync-status' + (cls ? ' ' + cls : '');
+  }
+
+  function slugify(str){
+    return String(str).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || uid();
+  }
+
+  async function fetchGoogleCalendarEvents(calendarId, apiKey, timeMin, timeMax){
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`
+      + `?key=${encodeURIComponent(apiKey)}&singleEvents=true&orderBy=startTime`
+      + `&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&maxResults=250`;
+    const res = await fetch(url);
+    if(!res.ok){
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error && body.error.message ? body.error.message : `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    return data.items || [];
+  }
+
+  // Turns an "Abi - Maths" style event into an assignment. Returns null if it
+  // doesn't match the "Name - Subject" pattern or the name doesn't match anyone.
+  function parseAssignmentEvent(item){
+    const startRaw = item.start && (item.start.date || item.start.dateTime);
+    const due = startRaw ? startRaw.slice(0,10) : null;
+    if(!due) return null;
+    const title = (item.summary || '').trim();
+    const idx = title.indexOf(' - ');
+    if(idx === -1) return { unmatched: true, reason: 'no " - " separator', title };
+    const namePart = title.slice(0, idx).trim();
+    const subjectPart = title.slice(idx + 3).trim();
+    if(!namePart || !subjectPart) return { unmatched: true, reason: 'blank name or subject', title };
+    const person = state.people.find(p => p.name.toLowerCase() === namePart.toLowerCase());
+    if(!person) return { unmatched: true, reason: `no person named "${namePart}"`, title };
+    const details = (item.description || '').replace(/<[^>]+>/g, '').trim();
+    return {
+      eventId: item.id,
+      personId: person.id,
+      subjectName: subjectPart,
+      title: details || title,
+      due
+    };
+  }
+
+  async function ensureSubject(name){
+    const existing = state.subjects.find(s => s.name.toLowerCase() === name.toLowerCase());
+    if(existing) return existing.id;
+    const palette = ['#3b82f6','#22c55e','#a78bfa','#f97316','#eab308','#ec4899','#06b6d4','#84cc16'];
+    const color = palette[state.subjects.length % palette.length];
+    const id = slugify(name);
+    if(backendEnabled()){
+      await apiCall('/api/subjects', { method:'POST', body: JSON.stringify({ id, name, color }) });
+    }
+    state.subjects.push({ id, name, color });
+    return id;
+  }
+
+  async function syncAssignmentsFromCalendar(calendarId, apiKey){
+    const timeMin = new Date(); timeMin.setDate(timeMin.getDate() - 7);
+    const timeMax = new Date(); timeMax.setDate(timeMax.getDate() + 180);
+    const items = await fetchGoogleCalendarEvents(calendarId, apiKey, timeMin.toISOString(), timeMax.toISOString());
+
+    let created = 0, skipped = 0;
+    for(const item of items){
+      const parsed = parseAssignmentEvent(item);
+      if(!parsed || parsed.unmatched){ skipped++; continue; }
+      const id = 'gcal-' + parsed.eventId;
+      if(state.assignments.some(a => a.id === id)) continue; // already imported
+      const subjectId = await ensureSubject(parsed.subjectName);
+      const payload = { id, personId: parsed.personId, subjectId, title: parsed.title, due: parsed.due, notes: '' };
+      if(backendEnabled()){
+        await apiCall('/api/assignments', { method:'POST', body: JSON.stringify(payload) });
+      }
+      state.assignments.push({ ...payload, done: false });
+      created++;
+    }
+    return { created, skipped, total: items.length };
+  }
+
+  async function syncGoogleCalendar(){
+    const { calendarId, assignmentsCalendarId, apiKey } = state.googleSync;
+    if(!apiKey || (!calendarId && !assignmentsCalendarId)){
+      setSyncStatus('Add an API key and at least one Calendar ID above, then hit Sync now.');
+      return;
+    }
+    setSyncStatus('Syncing…');
+    try{
+      if(calendarId){
+        const timeMin = new Date(calCursor.getFullYear(), calCursor.getMonth() - 1, 1).toISOString();
+        const timeMax = new Date(calCursor.getFullYear(), calCursor.getMonth() + 2, 1).toISOString();
+        const items = await fetchGoogleCalendarEvents(calendarId, apiKey, timeMin, timeMax);
+        state.googleEvents = items.map(item => {
+          const startRaw = item.start && (item.start.date || item.start.dateTime);
+          const endRaw = item.end && (item.end.date || item.end.dateTime);
+          const start = startRaw ? startRaw.slice(0,10) : null;
+          let end = endRaw ? endRaw.slice(0,10) : start;
+          if(item.start && item.start.date && item.end && item.end.date && end !== start){
+            const e = toDateOnly(end); e.setDate(e.getDate()-1); end = isoDate(e);
+          }
+          return { id: 'g-' + item.id, title: item.summary || '(untitled)', start, end: end || start };
+        }).filter(ev => ev.start);
+      }
+
+      let assignResult = null;
+      if(assignmentsCalendarId){
+        assignResult = await syncAssignmentsFromCalendar(assignmentsCalendarId, apiKey);
+      }
+
+      state.googleSync.lastSync = new Date().toISOString();
+      save();
+
+      const parts = [];
+      if(calendarId) parts.push(`${state.googleEvents.length} calendar events`);
+      if(assignResult) parts.push(`${assignResult.created} new assignment${assignResult.created===1?'':'s'}${assignResult.skipped ? ` (${assignResult.skipped} skipped — no name match)` : ''}`);
+      setSyncStatus(`Synced ${parts.join(' · ')} · ${new Date(state.googleSync.lastSync).toLocaleTimeString()}`, 'ok');
+
+      if(backendEnabled()){
+        await refreshFromBackend();
+      }else{
+        renderCalendar();
+        renderSubjects();
+        renderAll();
+      }
+    }catch(err){
+      console.error(err);
+      setSyncStatus('Sync failed: ' + err.message + ' — check the Calendar ID(s), API key, and that the calendar is public.', 'err');
+    }
+  }
+
+  function renderCalendar(){
+    const dowEl = document.getElementById('calDow');
+    dowEl.innerHTML = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+    const year = calCursor.getFullYear();
+    const month = calCursor.getMonth();
+    document.getElementById('calMonthLabel').textContent = calCursor.toLocaleDateString(undefined, { month:'long', year:'numeric' });
+
+    const firstOfMonth = new Date(year, month, 1);
+    const startOffset = firstOfMonth.getDay();
+    const gridStart = new Date(year, month, 1 - startOffset);
+    const today = todayDate();
+
+    const grid = document.getElementById('calGrid');
+    let html = '';
+    for(let i=0; i<42; i++){
+      const cellDate = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate()+i);
+      const inMonth = cellDate.getMonth() === month;
+      const isToday = isoDate(cellDate) === isoDate(today);
+      const isSelected = isoDate(cellDate) === isoDate(selectedDay);
+      const dayEvents = eventsOnDay(cellDate);
+      const shown = dayEvents.slice(0,3);
+      const extra = dayEvents.length - shown.length;
+
+      html += `<div class="cal-cell ${inMonth?'':'muted'} ${isToday?'today':''} ${isSelected?'selected':''}" data-date="${isoDate(cellDate)}">
+        <div class="d-num">${cellDate.getDate()}</div>
+        ${shown.map(ev => {
+          if(ev.source === 'google'){
+            return `<div class="cal-pill google-pill">${escapeHtml(ev.title)}</div>`;
+          }
+          const p = personById(ev.personId);
+          return `<div class="cal-pill" style="background:${p?p.color:'#666'}">${escapeHtml(ev.title)}</div>`;
+        }).join('')}
+        ${extra > 0 ? `<div class="cal-pill more">+${extra} more</div>` : ''}
+      </div>`;
+    }
+    grid.innerHTML = html;
+
+    grid.querySelectorAll('.cal-cell').forEach(cell => {
+      cell.addEventListener('click', () => {
+        selectedDay = toDateOnly(cell.dataset.date);
+        renderCalendar();
+      });
+    });
+
+    renderAgenda();
+  }
+
+  function renderAgenda(){
+    document.getElementById('agendaTitle').textContent = 'Agenda — ' + fmtDate(selectedDay);
+    const dayEvents = eventsOnDay(selectedDay);
+    const list = document.getElementById('agendaList');
+    if(dayEvents.length === 0){
+      list.innerHTML = '<div class="empty">Nothing on the calendar this day.</div>';
+      return;
+    }
+    list.innerHTML = dayEvents.map(ev => {
+      const range = ev.start !== ev.end ? ` (${ev.start} → ${ev.end})` : '';
+      if(ev.source === 'google'){
+        return `<div class="agenda-item">
+          <span class="who" style="background:#38bdf8"></span>
+          <div><strong>${escapeHtml(ev.title)}</strong> — Google Calendar${range}</div>
+        </div>`;
+      }
+      const p = personById(ev.personId);
+      return `<div class="agenda-item">
+        <span class="who" style="background:${p?p.color:'#666'}"></span>
+        <div><strong>${escapeHtml(ev.title)}</strong> — ${p?escapeHtml(p.name):'Unknown'}${range}</div>
+        <button class="icon-btn" data-id="${ev.id}" style="margin-left:auto;" title="Delete">✕</button>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('button[data-id]').forEach(btn => btn.addEventListener('click', async () => {
+      if(backendEnabled()){
+        try{
+          await apiCall('/api/events/' + encodeURIComponent(btn.dataset.id), { method:'DELETE' });
+          await refreshFromBackend();
+        }catch(err){ alert('Could not delete on backend: ' + err.message); }
+      }else{
+        state.events = state.events.filter(ev => ev.id !== btn.dataset.id);
+        save(); renderCalendar();
+      }
+    }));
+  }
+
+  // ---------------- Export / Import ----------------
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `homebase-backup-${isoDate(new Date())}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const parsed = JSON.parse(reader.result);
+        if(!parsed.people || !parsed.assignments || !parsed.events) throw new Error('bad format');
+        if(!confirm('This will replace all current data with the backup file. Continue?')) return;
+        state = parsed;
+        save();
+        renderPeople(); renderSubjects(); renderAll(); renderCalendar();
+      }catch(err){
+        alert('Could not read that file — is it a Homebase backup?');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  function renderAll(){
+    renderStats();
+    renderFlightpath();
+    renderAssignmentList();
+  }
+
+  // ---------------- Init ----------------
+  document.getElementById('af-due').valueAsDate = new Date();
+  document.getElementById('ef-start').valueAsDate = new Date();
+  renderPeople();
+  renderSubjects();
+  renderAll();
+  renderCalendar();
+
+  if(backendEnabled()){
+    refreshFromBackend();
+  }
+
+  if(state.googleSync.apiKey && (state.googleSync.calendarId || state.googleSync.assignmentsCalendarId)){
+    if(state.googleSync.lastSync){
+      setSyncStatus(`Last synced ${new Date(state.googleSync.lastSync).toLocaleString()} — syncing again…`);
+    }
+    syncGoogleCalendar();
+  }
+})();
+</script>
+</body>
+</html>
