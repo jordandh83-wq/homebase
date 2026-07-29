@@ -539,6 +539,19 @@
       state.subjects = (data.subjects && data.subjects.length) ? data.subjects : state.subjects;
       state.assignments = data.assignments || [];
       state.events = data.events || [];
+      if(data.googleSync && (data.googleSync.calendarId || data.googleSync.assignmentsCalendarId || data.googleSync.apiKey)){
+        state.googleSync.calendarId = data.googleSync.calendarId || '';
+        state.googleSync.assignmentsCalendarId = data.googleSync.assignmentsCalendarId || '';
+        state.googleSync.apiKey = data.googleSync.apiKey || '';
+        const calIdEl = document.getElementById('sf-calid');
+        const assignCalIdEl = document.getElementById('sf-assign-calid');
+        const keyEl = document.getElementById('sf-key');
+        if(calIdEl) calIdEl.value = state.googleSync.calendarId;
+        if(assignCalIdEl) assignCalIdEl.value = state.googleSync.assignmentsCalendarId;
+        if(keyEl) keyEl.value = state.googleSync.apiKey;
+        save();
+        syncGoogleCalendar();
+      }
       renderPeople();
       renderSubjects();
       renderAll();
@@ -912,6 +925,17 @@
     state.googleSync.apiKey = document.getElementById('sf-key').value.trim();
     save();
     syncGoogleCalendar();
+    if(backendEnabled()){
+      apiCall('/api/settings/googlesync', {
+        method: 'POST',
+        body: JSON.stringify(state.googleSync)
+      }).then(() => {
+        setSyncStatus('Saved — synced to all devices.', 'ok');
+      }).catch(err => {
+        console.error(err);
+        setSyncStatus('Saved locally, but could not push to shared backend: ' + err.message, 'err');
+      });
+    }
   });
 
   function setSyncStatus(msg, cls){

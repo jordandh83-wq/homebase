@@ -50,18 +50,38 @@ export default {
     try {
       // ---- Full state ----
       if (path === "/api/state" && method === "GET") {
-        const [people, subjects, assignments, events] = await Promise.all([
+        const [people, subjects, assignments, events, settingsRow] = await Promise.all([
           db.prepare("SELECT id, name, color FROM people").all(),
           db.prepare("SELECT id, name, color FROM subjects").all(),
           db.prepare("SELECT id, person_id as personId, subject_id as subjectId, title, due, notes, done FROM assignments").all(),
           db.prepare("SELECT id, person_id as personId, title, start, end FROM events").all(),
+          db.prepare("SELECT value FROM settings WHERE key = 'googleSync'").first(),
         ]);
+        let googleSync = { calendarId: "", assignmentsCalendarId: "", apiKey: "" };
+        if (settingsRow && settingsRow.value) {
+          try { googleSync = { ...googleSync, ...JSON.parse(settingsRow.value) }; } catch (e) {}
+        }
         return json({
           people: people.results,
           subjects: subjects.results,
           assignments: assignments.results.map(a => ({ ...a, done: !!a.done })),
           events: events.results,
+          googleSync,
         }, {}, env);
+      }
+
+      // ---- Settings (shared config like Google Calendar sync) ----
+      if (path === "/api/settings/googlesync" && (method === "POST" || method === "PUT")) {
+        const body = await request.json();
+        const value = JSON.stringify({
+          calendarId: body.calendarId || "",
+          assignmentsCalendarId: body.assignmentsCalendarId || "",
+          apiKey: body.apiKey || "",
+        });
+        await db.prepare(
+          "INSERT INTO settings (key, value) VALUES ('googleSync', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+        ).bind(value).run();
+        return json({ ok: true }, {}, env);
       }
 
       // ---- People ----
