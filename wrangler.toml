@@ -1,0 +1,8 @@
+name = "homebase-api"
+main = "index.js"
+compatibility_date = "2026-07-29"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "homebase"
+database_id = "a2e66860-980c-40b2-be4a-5f67a18bfaff"
