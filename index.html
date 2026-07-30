@@ -145,9 +145,11 @@
   .chip .dot{ width:7px; height:7px; border-radius:50%; }
 
   /* ---------- Calendar ---------- */
-  .cal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .cal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px 0; }
   .cal-header .month-label{ font-size:1.1rem; font-weight:600; }
-  .cal-nav{ display:flex; gap:6px; }
+  .cal-nav{ display:flex; gap:6px; flex-wrap:wrap; }
+  .cal-zoom-scroll{ overflow:auto; }
+  .cal-zoom-inner{ transform-origin: top left; }
   .cal-grid{ display:grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap:6px; width:100%; }
   .cal-dow{ text-align:center; font-size:0.7rem; color:var(--muted); font-weight:700; padding-bottom:4px; min-width:0; }
   .cal-cell{
@@ -281,41 +283,19 @@
       <div class="cal-header">
         <div class="month-label" id="calMonthLabel"></div>
         <div class="cal-nav">
+          <button class="btn ghost small" id="calZoomOut" title="Zoom out">&minus;</button>
+          <button class="btn ghost small" id="calZoomReset" title="Reset zoom">100%</button>
+          <button class="btn ghost small" id="calZoomIn" title="Zoom in">&#43;</button>
           <button class="btn ghost small" id="calPrev">&larr;</button>
           <button class="btn ghost small" id="calToday">Today</button>
           <button class="btn ghost small" id="calNext">&rarr;</button>
         </div>
       </div>
-      <div class="cal-grid" id="calDow"></div>
-      <div class="cal-grid" id="calGrid" style="margin-top:6px;"></div>
-    </div>
-
-    <div class="panel">
-      <h2>Google Calendar sync <span class="count">read-only</span></h2>
-      <form id="syncForm">
-        <div class="form-row">
-          <div style="flex:2;">
-            <label class="field-label">Family calendar ID (optional)</label>
-            <input id="sf-calid" type="text" placeholder="e.g. family_abc123@group.calendar.google.com">
-          </div>
-          <div style="flex:2;">
-            <label class="field-label">Assignments calendar ID (optional)</label>
-            <input id="sf-assign-calid" type="text" placeholder="e.g. school_abc123@group.calendar.google.com">
-          </div>
+      <div class="cal-zoom-scroll">
+        <div class="cal-zoom-inner" id="calZoomInner">
+          <div class="cal-grid" id="calDow"></div>
+          <div class="cal-grid" id="calGrid" style="margin-top:6px;"></div>
         </div>
-        <div class="form-row">
-          <div style="flex:2;">
-            <label class="field-label">API key</label>
-            <input id="sf-key" type="text" placeholder="Google Cloud API key">
-          </div>
-          <div style="align-self:flex-end;">
-            <button type="submit" class="btn" style="width:100%;">Sync now</button>
-          </div>
-        </div>
-      </form>
-      <div class="sync-status" id="syncStatus">Not connected yet.</div>
-      <div class="sync-help">
-        The family calendar ID shows its events on the Calendar grid with a dashed outline. The assignments calendar ID turns events titled <strong>"Name - Subject"</strong> (e.g. "Abi - Maths") into Flightpath cards — the event's date becomes the due date, and the description (if any) becomes the detail line. Neither ever writes back to Google. One-time setup: in each calendar's settings, turn on <em>"Make available to public"</em> under Access permissions and copy the Calendar ID from Integrate calendar. Then in Google Cloud Console, enable the Calendar API and create an API key restricted to it. All values are stored only in this browser.
       </div>
     </div>
 
@@ -351,6 +331,35 @@
     <div class="panel agenda">
       <h2 id="agendaTitle">Agenda</h2>
       <div id="agendaList"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Google Calendar sync <span class="count">read-only</span></h2>
+      <form id="syncForm">
+        <div class="form-row">
+          <div style="flex:2;">
+            <label class="field-label">Family calendar ID (optional)</label>
+            <input id="sf-calid" type="text" placeholder="e.g. family_abc123@group.calendar.google.com">
+          </div>
+          <div style="flex:2;">
+            <label class="field-label">Assignments calendar ID (optional)</label>
+            <input id="sf-assign-calid" type="text" placeholder="e.g. school_abc123@group.calendar.google.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div style="flex:2;">
+            <label class="field-label">API key</label>
+            <input id="sf-key" type="text" placeholder="Google Cloud API key">
+          </div>
+          <div style="align-self:flex-end;">
+            <button type="submit" class="btn" style="width:100%;">Sync now</button>
+          </div>
+        </div>
+      </form>
+      <div class="sync-status" id="syncStatus">Not connected yet.</div>
+      <div class="sync-help">
+        The family calendar ID shows its events on the Calendar grid with a dashed outline. The assignments calendar ID turns events titled <strong>"Name - Subject"</strong> (e.g. "Abi - Maths") into Flightpath cards — the event's date becomes the due date, and the description (if any) becomes the detail line. Neither ever writes back to Google. One-time setup: in each calendar's settings, turn on <em>"Make available to public"</em> under Access permissions and copy the Calendar ID from Integrate calendar. Then in Google Cloud Console, enable the Calendar API and create an API key restricted to it. All values are stored only in this browser.
+      </div>
     </div>
   </section>
 
@@ -454,7 +463,12 @@
     ],
     assignments: [],
     events: [],
-    googleSync: { calendarId: "", assignmentsCalendarId: "", apiKey: "", lastSync: null },
+    googleSync: {
+      calendarId: "family01651929712405671658@group.calendar.google.com",
+      assignmentsCalendarId: "1ff64311210ce7bcf6edc42ec9370f2a38dcb68c307e00788cb33d8290a71784@group.calendar.google.com",
+      apiKey: "AIzaSyAaD_OoEWBPvWjHJfyn6MNAMijKK7IWu4k",
+      lastSync: null
+    },
     googleEvents: [],
     backend: { apiBase: "https://homebase-api.jordandh83.workers.dev", apiToken: "T90yzN6QIDGvqOKVGVlnkwvTdQDzMrTpDWEvNljFHpj8Uw-409" }
   };
@@ -471,7 +485,12 @@
         subjects: parsed.subjects && parsed.subjects.length ? parsed.subjects : structuredClone(DEFAULTS.subjects),
         assignments: parsed.assignments || [],
         events: parsed.events || [],
-        googleSync: { ...DEFAULTS.googleSync, ...(parsed.googleSync || {}) },
+        googleSync: {
+          calendarId: (parsed.googleSync && parsed.googleSync.calendarId) || DEFAULTS.googleSync.calendarId,
+          assignmentsCalendarId: (parsed.googleSync && parsed.googleSync.assignmentsCalendarId) || DEFAULTS.googleSync.assignmentsCalendarId,
+          apiKey: (parsed.googleSync && parsed.googleSync.apiKey) || DEFAULTS.googleSync.apiKey,
+          lastSync: (parsed.googleSync && parsed.googleSync.lastSync) || null
+        },
         googleEvents: parsed.googleEvents || [],
         backend: {
           apiBase: (parsed.backend && parsed.backend.apiBase) || DEFAULTS.backend.apiBase,
@@ -863,6 +882,18 @@
   // ---------------- Calendar ----------------
   let calCursor = todayDate();
   let selectedDay = todayDate();
+  let calZoom = parseFloat(localStorage.getItem('homebase_cal_zoom')) || 1;
+
+  function applyCalZoom(){
+    calZoom = Math.max(0.6, Math.min(2, Math.round(calZoom * 10) / 10));
+    document.getElementById('calZoomInner').style.transform = `scale(${calZoom})`;
+    document.getElementById('calZoomReset').textContent = Math.round(calZoom * 100) + '%';
+    try{ localStorage.setItem('homebase_cal_zoom', calZoom); }catch(e){}
+  }
+  document.getElementById('calZoomIn').addEventListener('click', () => { calZoom += 0.1; applyCalZoom(); });
+  document.getElementById('calZoomOut').addEventListener('click', () => { calZoom -= 0.1; applyCalZoom(); });
+  document.getElementById('calZoomReset').addEventListener('click', () => { calZoom = 1; applyCalZoom(); });
+  applyCalZoom();
 
   function maybeResync(){
     if(state.googleSync.apiKey && (state.googleSync.calendarId || state.googleSync.assignmentsCalendarId)) syncGoogleCalendar();
