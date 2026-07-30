@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<head> 
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Homebase</title>
-<link rel="apple-touch-icon" href="apple-touch-icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -21,7 +20,7 @@
     --radius: 14px;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
+  html,body{margin:0;padding:0; overflow-x:hidden; max-width:100vw;}
   body{
     background: radial-gradient(1200px 600px at 15% -10%, #14213d 0%, var(--bg) 55%);
     color: var(--text);
@@ -149,12 +148,12 @@
   .cal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
   .cal-header .month-label{ font-size:1.1rem; font-weight:600; }
   .cal-nav{ display:flex; gap:6px; }
-  .cal-grid{ display:grid; grid-template-columns: repeat(7,1fr); gap:6px; }
-  .cal-dow{ text-align:center; font-size:0.7rem; color:var(--muted); font-weight:700; padding-bottom:4px; }
+  .cal-grid{ display:grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap:6px; width:100%; }
+  .cal-dow{ text-align:center; font-size:0.7rem; color:var(--muted); font-weight:700; padding-bottom:4px; min-width:0; }
   .cal-cell{
-    min-height:78px; background:var(--surface-2); border:1px solid var(--border); border-radius:10px;
+    min-height:78px; min-width:0; background:var(--surface-2); border:1px solid var(--border); border-radius:10px;
     padding:6px; font-size:0.75rem; cursor:pointer; display:flex; flex-direction:column; gap:3px;
-    transition: border-color .15s ease;
+    transition: border-color .15s ease; overflow:hidden;
   }
   .cal-cell:hover{ border-color: var(--teal); }
   .cal-cell.muted{ opacity:0.3; }
@@ -539,19 +538,6 @@
       state.subjects = (data.subjects && data.subjects.length) ? data.subjects : state.subjects;
       state.assignments = data.assignments || [];
       state.events = data.events || [];
-      if(data.googleSync && (data.googleSync.calendarId || data.googleSync.assignmentsCalendarId || data.googleSync.apiKey)){
-        state.googleSync.calendarId = data.googleSync.calendarId || '';
-        state.googleSync.assignmentsCalendarId = data.googleSync.assignmentsCalendarId || '';
-        state.googleSync.apiKey = data.googleSync.apiKey || '';
-        const calIdEl = document.getElementById('sf-calid');
-        const assignCalIdEl = document.getElementById('sf-assign-calid');
-        const keyEl = document.getElementById('sf-key');
-        if(calIdEl) calIdEl.value = state.googleSync.calendarId;
-        if(assignCalIdEl) assignCalIdEl.value = state.googleSync.assignmentsCalendarId;
-        if(keyEl) keyEl.value = state.googleSync.apiKey;
-        save();
-        syncGoogleCalendar();
-      }
       renderPeople();
       renderSubjects();
       renderAll();
@@ -925,17 +911,6 @@
     state.googleSync.apiKey = document.getElementById('sf-key').value.trim();
     save();
     syncGoogleCalendar();
-    if(backendEnabled()){
-      apiCall('/api/settings/googlesync', {
-        method: 'POST',
-        body: JSON.stringify(state.googleSync)
-      }).then(() => {
-        setSyncStatus('Saved — synced to all devices.', 'ok');
-      }).catch(err => {
-        console.error(err);
-        setSyncStatus('Saved locally, but could not push to shared backend: ' + err.message, 'err');
-      });
-    }
   });
 
   function setSyncStatus(msg, cls){
@@ -1020,10 +995,14 @@
     return { created, skipped, total: items.length };
   }
 
+  let syncInFlight = false;
   async function syncGoogleCalendar(){
+    if(syncInFlight) return;
+    syncInFlight = true;
     const { calendarId, assignmentsCalendarId, apiKey } = state.googleSync;
     if(!apiKey || (!calendarId && !assignmentsCalendarId)){
       setSyncStatus('Add an API key and at least one Calendar ID above, then hit Sync now.');
+      syncInFlight = false;
       return;
     }
     setSyncStatus('Syncing…');
@@ -1067,6 +1046,8 @@
     }catch(err){
       console.error(err);
       setSyncStatus('Sync failed: ' + err.message + ' — check the Calendar ID(s), API key, and that the calendar is public.', 'err');
+    }finally{
+      syncInFlight = false;
     }
   }
 
@@ -1200,16 +1181,16 @@
   renderAll();
   renderCalendar();
 
-  if(backendEnabled()){
-    refreshFromBackend();
-  }
-
-  if(state.googleSync.apiKey && (state.googleSync.calendarId || state.googleSync.assignmentsCalendarId)){
-    if(state.googleSync.lastSync){
-      setSyncStatus(`Last synced ${new Date(state.googleSync.lastSync).toLocaleString()} — syncing again…`);
+  (async () => {
+    if(state.googleSync.apiKey && (state.googleSync.calendarId || state.googleSync.assignmentsCalendarId)){
+      if(state.googleSync.lastSync){
+        setSyncStatus(`Last synced ${new Date(state.googleSync.lastSync).toLocaleString()} — syncing again…`);
+      }
+      await syncGoogleCalendar(); // this also refreshes from the backend when connected, so no separate call needed
+    }else if(backendEnabled()){
+      await refreshFromBackend();
     }
-    syncGoogleCalendar();
-  }
+  })();
 })();
 </script>
 </body>
